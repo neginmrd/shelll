@@ -58,12 +58,28 @@ void builtInCommands(char input[]){
     }
 }
 
+void storeCommand(char input[]){ 
+    FILE *fp;
+
+    fp = fopen("history.txt", "a");
+ 
+    if(fp == NULL) {
+        fprintf(stderr, "Could not open file.\n"); 
+        return;
+    }
+    fflush(stdin);
+    fputs(input,fp);
+    fputs("\n",fp);
+    fclose(fp);
+}
+
 int main() {
     int running = 1;
     char *line;
     while(running) {
         printCurrentDir();
         line = inputString(stdin, 10);
+        storeCommand(line);
         builtInCommands(line);
         free(line);
     }
