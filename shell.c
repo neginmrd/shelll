@@ -3,44 +3,40 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
 
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 #define MAX_LINES_IN_FILE 500
 #define MAX_CHARACTERS_IN_LINE 100
 
-char *inputString(FILE* fp, size_t size) {
-//The size is extended by the input with the value of the provisional
-    char *str;
-    int ch;
-    size_t len = 0;
-    str = realloc(NULL, sizeof(*str)*size);//size is start size
-    if(!str)return str;
-    while(EOF!=(ch=fgetc(fp)) && ch != '\n'){
-        str[len++]=ch;
-        if(len==size){
-            str = realloc(str, sizeof(*str)*(size+=16));
-            if(!str)return str;
-        }
+void inputString(char* str) {
+    char* buf;
+    buf = readline(">>> " ANSI_COLOR_RESET);
+    if (strlen(buf) != 0) {
+        add_history(buf);
+        strcpy(str, buf);
     }
-    str[len++]='\0';
-
-    return realloc(str, sizeof(*str)*len);
+    return;
 }
 
 void printCurrentDir() {
     char cwd[1024];
     getcwd(cwd, sizeof(cwd));
     printf(ANSI_COLOR_MAGENTA "%s/\n", cwd);
-    printf(">>> " ANSI_COLOR_RESET);
 }
+
 
 void builtInCommands(char input[]){
     char *command[20];
     int i = 0;
     char *tmp;
+    char line[100];
 
-    command[i] = strtok(input, " ");
+    strcpy(line, input);
+    command[i] = strtok(line, " ");
     while(command[i])
         command[++i] =  strtok(NULL, " ");
     if(!strcmp(command[0], "cd")){ 
@@ -75,8 +71,6 @@ void storeCommand(char input[]){
     fclose(fp);
 }
 
-
-/////////////// custom commands
 void headlines(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int count) {
     char *token;
     char line[MAX_CHARACTERS_IN_LINE];
@@ -113,7 +107,9 @@ int isOwnCommand(char input[]){
 }
 
 int processOwnCommands(char input[]) {
-    char *command = strtok(input, " ");
+    char line[100];
+    strcpy(line, input);
+    char *command = strtok(line, " ");
     char *filename = strtok(NULL, " ");
     if (!isOwnCommand(command)) return(0);
 
@@ -143,15 +139,15 @@ int processOwnCommands(char input[]) {
 }
 
 int main() {
+    char line[100];
     int running = 1;
-    char *line;
+
     while(running) {
         printCurrentDir();
-        line = inputString(stdin, 10);
+        inputString(line);
         storeCommand(line);
         if (!processOwnCommands(line))
             builtInCommands(line);
-        free(line);
     }
     return(0);
 }
