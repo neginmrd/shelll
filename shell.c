@@ -34,6 +34,29 @@ void printCurrentDir() {
     printf(">>> " ANSI_COLOR_RESET);
 }
 
+/////////////// custom commands
+void headlines(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int count) {
+    char *token;
+    char line[MAX_CHARACTERS_IN_LINE];
+    for (int i = 0; i < count; i++) {
+        strcpy(line, lines[i]);
+        token = strtok(line, " ");
+        printf("%s\n", token);
+    }
+    return;
+}
+
+void head(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int num, int count) {
+    for (int i = 0; i < count && i < num; i++)
+        printf("%s\n", lines[i]);
+    return;
+}
+
+void howmanylines(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int count) {
+    printf("%d\n", count);
+    return;
+}
+
 int isOwnCommand(char input[]){
     char ownCommands[6][15] = {"headlines", "freq", "noSpace", "noComment", "howmanylines", "head10"};
     int i = 0;
@@ -67,6 +90,13 @@ int processOwnCommands(char input[]) {
         count++;
     }
     fclose(fptr);
+
+    if (strcmp(command, "headlines") == 0) headlines(buffer, count);
+    else if (strcmp(command, "head10") == 0) head(buffer, 10, count);
+    else if (strcmp(command, "howmanylines") == 0) howmanylines(buffer, count);
+
+    else printf("other commands.\n");
+
     return(1);
 }
 
