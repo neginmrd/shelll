@@ -32,12 +32,38 @@ void printCurrentDir() {
     printf(">>> " ANSI_COLOR_RESET);
 }
 
+void builtInCommands(char input[]){
+    char *command[20];
+    int i = 0;
+    char *tmp;
+
+    command[i] = strtok(input, " ");
+    while(command[i])
+        command[++i] =  strtok(NULL, " ");
+    if(!strcmp(command[0], "cd")){ 
+        chdir(command[1]); 
+    }
+    else{
+        pid_t pid = fork();
+        if (pid == 0){ //child process executing built-in commands 
+            if( execvp(command[0], command) < 0)
+                fprintf(stderr, "command not found.\n");    
+            exit(0);
+        }
+        else{
+            wait(NULL);
+            return;
+        }
+    }
+}
+
 int main() {
     int running = 1;
     char *line;
     while(running) {
         printCurrentDir();
         line = inputString(stdin, 10);
+        builtInCommands(line);
         free(line);
     }
     return(0);
