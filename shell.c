@@ -35,7 +35,6 @@ void printCurrentDir() {
     printf(">>> " ANSI_COLOR_RESET);
 }
 
-<<<<<<< HEAD
 void builtInCommands(char input[]){
     char *command[20];
     int i = 0;
@@ -76,9 +75,8 @@ void storeCommand(char input[]){
     fclose(fp);
 }
 
-=======
+
 /////////////// custom commands
->>>>>>> e032ed075c8967f403edc310440cdd6f44c245e9
 void headlines(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int count) {
     char *token;
     char line[MAX_CHARACTERS_IN_LINE];
@@ -151,8 +149,8 @@ int main() {
         printCurrentDir();
         line = inputString(stdin, 10);
         storeCommand(line);
-        processOwnCommands(line);
-        builtInCommands(line);
+        if (!processOwnCommands(line))
+            builtInCommands(line);
         free(line);
     }
     return(0);
