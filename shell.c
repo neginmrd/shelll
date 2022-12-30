@@ -5,12 +5,15 @@
 #include <sys/wait.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <signal.h>
+#include <setjmp.h>
 
 
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 #define MAX_LINES_IN_FILE 500
 #define MAX_CHARACTERS_IN_LINE 100
+sigjmp_buf ctrlc_buf;
 
 void inputString(char* str) {
     char* buf;
@@ -194,11 +197,22 @@ int processOwnCommands(char input[]) {
     return(1);
 }
 
+void handle_signals(int signo) {
+    if (signo == SIGINT) {
+        printf("\n");
+        siglongjmp(ctrlc_buf, 1);
+    }
+}
+
 int main() {
     char line[100];
     int running = 1;
 
+    if (signal(SIGINT, handle_signals) == SIG_ERR) {
+        printf("failed to register interrupts with kernel\n");
+    } 
     while(running) {
+        while (sigsetjmp(ctrlc_buf, 1 ) != 0 );
         printCurrentDir();
         inputString(line);
         storeCommand(line);
