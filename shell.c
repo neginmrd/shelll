@@ -204,6 +204,108 @@ void handle_signals(int signo) {
     }
 }
 
+void executeCommand(char line[]) {
+    if (!processOwnCommands(line))
+        builtInCommands(line);
+}
+
+char *trimwhitespace(char *str){
+    char *end;
+
+    // Trim leading space
+    while(isspace((unsigned char)*str)) str++;
+
+    if(*str == 0)  // All spaces?
+        return str;
+
+    // Trim trailing space
+    end = str + strlen(str) - 1;
+    while(end > str && isspace((unsigned char)*end)) end--;
+
+    // Write new null terminator character
+    end[1] = '\0';
+
+    return str;
+}
+
+int charsInStr(char str[], char ch) {
+    int count = 0;
+    for (int i = 0; i < strlen(str); i++)
+        if (str[i] == ch) count++;
+    return count;
+}
+
+void executePipe(char str[]) {
+
+    // char str[] = "ls | sort";
+    int pipesNum = charsInStr(str, '|');
+    int totalCommands = pipesNum + 1;
+    char *commands[totalCommands];
+
+    // first token is different
+    commands[0] = strtok(str, "|");
+    commands[0] = trimwhitespace(commands[0]);
+    for (int i = 1; i <= pipesNum; i++) {
+        commands[i] = strtok(NULL, "|");
+        commands[i] = trimwhitespace(commands[i]);
+    }
+
+    // char commands[][100] = {"ls", "sort"};
+
+    /* parent creates all needed pipes at the start */
+    int status;
+    int pipefds[pipesNum][2];
+    for (int i = 0; i < pipesNum; i++)
+        if (pipe(pipefds[i*2]) < 0) {
+            perror("bad pipe");
+            _exit(1);
+        }
+
+    int commandCount = 0;
+    while (commandCount < totalCommands) {
+        int pid = fork();
+        if (pid == 0) {
+            if (commandCount) { // set input stream, skip first command(default stdin)
+                dup2(pipefds[commandCount-1][0], 0);
+            }
+            if (commandCount + 1 < totalCommands) { // set output stream, skip last command
+                dup2(pipefds[commandCount][1], 1);
+            }
+            // close all pipes
+            for (int i = 0; i < pipesNum; i++) {
+                close(pipefds[i][0]);
+                close(pipefds[i][1]);
+            }
+            // break up command to get args
+            char *args[20];
+            int i = 0;
+            args[0] = strtok(commands[commandCount], " ");
+            while(args[i])
+                args[++i] =  strtok(NULL, " ");
+            // execute command
+            // TODO: execute both built in and own commands
+            printf("%s\n", commands[commandCount]);
+            execvp(args[0], args);
+            // exec didn't work, exit
+            perror("bad exec");
+            _exit(1);
+        }
+        else if( pid < 0 ){
+            perror("bad fork");
+            _exit(1);
+        }
+        commandCount++;
+    }
+
+    for (int i = 0; i < pipesNum; i++){ // close all pipes
+        close(pipefds[i][0]);
+        close(pipefds[i][1]);
+    }
+
+    for(int i = 0; i < pipesNum + 1; i++) // wait for children
+        wait(&status);
+}
+
 int main() {
     char line[100];
     int running = 1;
@@ -216,8 +318,13 @@ int main() {
         printCurrentDir();
         inputString(line);
         storeCommand(line);
-        if (!processOwnCommands(line))
-            builtInCommands(line);
+        if (charsInStr(line, '|'))
+            executePipe(line);
+        else executeCommand(line);
+        // else {
+        //     if (!processOwnCommands(line))
+        //         builtInCommands(line);
+        // }
     }
     return(0);
 }
