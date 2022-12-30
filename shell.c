@@ -92,13 +92,62 @@ void howmanylines(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int cou
     printf("%d\n", count);
     return;
 }
+void discardComments(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int count) {
+    // comment in middle of a line?
+    char line[MAX_CHARACTERS_IN_LINE];
+    for (int i = 0; i < count; i++) {
+        strcpy(line, lines[i]);
+        if(line[0] != '#')
+            printf("%s\n", line);
+    }
+    return;
+}
+
+void removeWhiteSpace(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int count) {
+    for (int i = 0; i < count; i++)
+        for(int j = 0; lines[i][j]; j++)
+            if(!(lines[i][j] == ' ' || lines[i][j] == '\n' || lines[i][j] == '\t'))
+                printf("%c", lines[i][j]);
+    printf("\n");
+    return;
+}
+
+void freq(char lines[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE], int count){
+    char frequentWord[MAX_CHARACTERS_IN_LINE];
+    char words [MAX_LINES_IN_FILE*MAX_CHARACTERS_IN_LINE][MAX_CHARACTERS_IN_LINE];
+    int frequency;
+    int maxCount = 0;
+    int wordCount = 0;
+
+    for(int i = 0; i < count; i++){
+        for(int j=0; j < strlen(lines[i]); j++){
+            for (int k=0; lines[i][j]!=' ' && j < strlen(lines[i]); k++)
+                words[wordCount][k] = lines[i][j++];
+            wordCount++;
+        }
+    }
+
+    for (int i = 0; i < wordCount; i++){ 
+        frequency = 1; 
+        for (int j = i+1; j < wordCount; j++){
+            if(!strcmp(words[i],words[j]))
+                frequency++; 
+        }
+        if(frequency > maxCount){
+            maxCount = frequency; 
+            strcpy(frequentWord, words[i]); 
+        }
+    }
+    printf("%s\n", frequentWord);
+    return;
+}
 
 int isOwnCommand(char input[]){
     char ownCommands[6][15] = {"headlines", "freq", "noSpace", "noComment", "howmanylines", "head10"};
     int i = 0;
     while(i < 6){
         if(!strcmp(ownCommands[i], input)){
-            printf("found it in own commands.\n");
+            // printf("found it in own commands.\n");
             return(1);
         }
         i++;
@@ -116,7 +165,7 @@ int processOwnCommands(char input[]) {
     // read lines from file and put them in array
     FILE *fptr = fopen(filename, "r");
     if (fptr == NULL){
-        printf("Could not open file.\n");
+        fprintf(stderr, "Could not open file.\n"); 
         return(1);
     }
     char buffer[MAX_LINES_IN_FILE][MAX_CHARACTERS_IN_LINE];
@@ -128,13 +177,20 @@ int processOwnCommands(char input[]) {
         count++;
     }
     fclose(fptr);
-
-    if (strcmp(command, "headlines") == 0) headlines(buffer, count);
-    else if (strcmp(command, "head10") == 0) head(buffer, 10, count);
-    else if (strcmp(command, "howmanylines") == 0) howmanylines(buffer, count);
-
-    else printf("other commands.\n");
-
+    pid_t pid = fork();
+    if (pid == 0){
+        if (strcmp(command, "headlines") == 0) headlines(buffer, count);
+        else if (strcmp(command, "head10") == 0) head(buffer, 10, count);
+        else if (strcmp(command, "howmanylines") == 0) howmanylines(buffer, count);
+        else if (strcmp(command, "discardComments") == 0) discardComments(buffer, count);
+        else if (strcmp(command, "removeWhiteSpace") == 0) removeWhiteSpace(buffer, count);
+        else if (strcmp(command, "freq") == 0) freq(buffer, count);
+        exit(0);
+    }
+    else{
+        wait(NULL);
+        return(1);
+    }
     return(1);
 }
 
